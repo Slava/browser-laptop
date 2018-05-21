@@ -47,6 +47,8 @@ const userModelReducer = (state, action, immutableAction) => {
       {
         state = userModel.initialize(state)
 
+        state = userModel.generateAdReportingEvent(state, 'restart')
+
         // TODO remove, only for testing
         // setTimeout(() => {
         //   const activeWindowId = windows.getActiveWindowId()
@@ -56,12 +58,37 @@ const userModelReducer = (state, action, immutableAction) => {
       }
     case appConstants.APP_WINDOW_UPDATED:
       {
-        userModel.appFocused(state, !!windowState.getActiveWindow(state))
+        let winData = windowState.getActiveWindow(state)
+
+        userModel.appFocused(state, !!winData)
+
+        if (winData && winData.get('focused')) {
+          state = userModel.generateAdReportingEvent(state, 'foreground')
+        }
+
         break
       }
     case appConstants.APP_TAB_UPDATED: // kind of worthless; fires too often
       {
+
+        const changeInfo = action.get('changeInfo')
+        const stat = changeInfo && changeInfo.get('status') 
+        const complete = stat && stat == 'complete'
+
+        if (complete) {
+          state = userModel.generateAdReportingEvent(state, 'load', action)
+        }
+
+        const tabValue = action.get('tabValue')
+
+        const blurred = tabValue && !tabValue.get('active')
+
         state = userModel.tabUpdate(state, action)
+
+        if (blurred) {
+          state = userModel.generateAdReportingEvent(state, 'blur', action)
+        }
+
         break
       }
     case appConstants.APP_REMOVE_HISTORY_SITE:
@@ -88,6 +115,9 @@ const userModelReducer = (state, action, immutableAction) => {
         state = userModel.tabUpdate(state, action)
         state = userModel.testShoppingData(state, url)
         state = userModel.testSearchState(state, url)
+
+        state = userModel.generateAdReportingEvent(state, 'focus', action)
+
         break
       }
     case appConstants.APP_IDLE_STATE_CHANGED: // TODO where to set this globally
@@ -139,6 +169,7 @@ const userModelReducer = (state, action, immutableAction) => {
 
               // this reports `value` true if enabled and false if disabled
               state = userModel.initialize(state, adEnabled)
+
               break
             }
           // TODO check why this is here and fix if needed, currently is not triggered
@@ -153,6 +184,11 @@ const userModelReducer = (state, action, immutableAction) => {
               break
             }
         }
+
+        // You need to call this at the bottom of the case and not
+        // the top because the `switch` changes the values in question
+        state = userModel.generateAdReportingEvent(state, 'settings')
+
         break
       }
     case appConstants.APP_ON_USERMODEL_LOG:

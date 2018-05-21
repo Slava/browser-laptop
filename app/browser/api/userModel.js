@@ -8,11 +8,16 @@ const path = require('path')
 const getSSID = require('detect-ssid')
 const uuidv4 = require('uuid/v4')
 
+const app = require('electron').app
+const os = require('os')
+
 // Actions
 const appActions = require('../../../js/actions/appActions')
 
 // State
 const userModelState = require('../../common/state/userModelState')
+const settings = require('../../../js/constants/settings')
+const getSetting = require('../../../js/settings').getSetting
 
 // Constants
 const notificationTypes = require('../../common/constants/notificationTypes')
@@ -26,6 +31,92 @@ let foregroundP
 let matrixData
 let priorData
 let sampleAdFeed
+
+let lastSingleClassification
+
+const getCoreEventPayload = (state) => {
+
+  const uuid = userModelState.getAdUUID(state) || 'uninitialized'
+  const version = app.getVersion()
+  const platform =  { darwin: 'mac', win32: os.arch() === 'x32' ? 'winia32' : 'winx64' }[os.platform()] || 'linux'
+  const reportId = uuidv4()
+  const reportStamp = new Date().toISOString()
+
+  const payload = {
+    'browserId': uuid,
+    'braveVersion': version,
+    'platform': platform,
+    'reportId': reportId,
+    'reportStamp': new Date().toISOString(),
+    'events': []
+  }
+
+  return payload
+}
+
+const generateAdReportingEvent = (state, eventType, action) => {
+  // const payload = getCoreEventPayload(state)
+  // console.log("payload: ", payload)
+  let map = {}
+
+  map.type  = eventType
+  map.stamp = new Date().toISOString()
+  map.place = userModelState.getAdPlace(state) || 'unspecified'
+
+  // additional event data
+  switch (eventType) {
+    case 'notify': // TODO
+      {
+        // the event generating portion needs to go in the trigger and in the callback from the notification
+        break
+      }
+    case 'load':
+      {
+        const tabValue = action.get('tabValue')
+        map.tabId = tabValue.get('tabId')
+        map.tabType = 'general'
+        map.tabUrl = tabValue.get('url')
+        map.tabClassification = lastSingleClassification
+
+console.log("map: ", map)
+        break
+      }
+    case 'blur':
+      {
+        map.tabId = action.get('tabValue').get('tabId')
+        break
+      }
+    case 'focus':
+      {
+        map.tabId = action.get('tabId')
+        break
+      }
+    case 'settings':
+      {
+        let config = {}
+        config.operatingMode = getSetting(settings.ADS_OPERATING_MODE, state.settings) ? 'B':'A'
+        config.adsPerHour    = getSetting(settings.ADS_PER_HOUR, state.settings)
+        config.adsPerDay     = getSetting(settings.ADS_PER_DAY, state.settings)
+
+        map.settings = config
+        break
+      }
+    case 'foreground':
+    case 'restart':
+    default:
+      {
+        break 
+      }
+  }
+
+  state = userModelState.appendToReportingEventQueue(state, map)
+
+  // let q = userModelState.getReportingEventQueue(state)
+  // console.log("q: ", q)
+  // state = userModelState.flushReportingEventQueue(state)
+ 
+  return state
+}
 
 const initialize = (state, adEnabled) => {
   // TODO turn back on?
@@ -153,6 +244,8 @@ const goAheadAndShowTheAd = (windowId, notificationTitle, notificationText, noti
 const classifyPage = (state, action, windowId) => {
   // console.log('data in', action)// run NB on the code
 
+console.log('classify')
+
   let headers = action.getIn(['scrapedData', 'headers'])
   let body = action.getIn(['scrapedData', 'body'])
   let url = action.getIn(['scrapedData', 'url'])
@@ -187,6 +280,8 @@ const classifyPage = (state, action, windowId) => {
 
   let immediateMax = um.vectorIndexOfMax(pageScore)
   let immediateWinner = catNames[immediateMax].split('-')
+
+  lastSingleClassification = immediateWinner
 
   let mutable = true
   let history = userModelState.getPageScoreHistory(state, mutable)
@@ -353,7 +448,9 @@ const getMethods = () => {
     changeAdFrequency,
     goAheadAndShowTheAd,
     retrieveSSID,
-    confirmAdUUIDIfAdEnabled
+    confirmAdUUIDIfAdEnabled,
+    generateAdReportingEvent,
+    lastSingleClassification
   }
 
   let privateMethods = {}

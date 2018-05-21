@@ -90,6 +90,14 @@ const appendToRingBufferUnderKey = (state, key, item, maxRows) => {
   return state
 }
 
+const getReportingEventQueue = (state) => {
+  return state.getIn(['userModel', 'reportingEventQueue']) || []
+}
+
+const setReportingEventQueue = (state, queue) => {
+  return state.setIn(['userModel', 'reportingEventQueue'], queue)
+}
+
 const userModelState = {
   setUserModelValue: (state, key, value) => {
     state = validateState(state)
@@ -368,7 +376,23 @@ const userModelState = {
 
   setAdUUID: (state, uuid) => {
     return state.setIn(['userModel', 'adUUID'], uuid)
-  }
+  },
+
+  appendToReportingEventQueue: (state, evt) => {
+    const wrappedEvent = Immutable.Map(evt)
+    let q = getReportingEventQueue(state)
+    q = q.push(wrappedEvent)
+    state = setReportingEventQueue(state, q)
+    return state
+  },
+
+  flushReportingEventQueue: (state) => {
+    return setReportingEventQueue(state, [])
+  },
+  
+  getReportingEventQueue: getReportingEventQueue,
+
+  setReportingEventQueue: setReportingEventQueue
 
 }
 
