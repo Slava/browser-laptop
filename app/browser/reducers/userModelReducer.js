@@ -70,10 +70,9 @@ const userModelReducer = (state, action, immutableAction) => {
       }
     case appConstants.APP_TAB_UPDATED: // kind of worthless; fires too often
       {
-
         const changeInfo = action.get('changeInfo')
-        const stat = changeInfo && changeInfo.get('status') 
-        const complete = stat && stat == 'complete'
+        const stat = changeInfo && changeInfo.get('status')
+        const complete = stat === 'complete'
 
         if (complete) {
           state = userModel.generateAdReportingEvent(state, 'load', action)

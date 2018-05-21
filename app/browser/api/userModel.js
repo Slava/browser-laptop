@@ -35,12 +35,10 @@ let sampleAdFeed
 let lastSingleClassification
 
 const getCoreEventPayload = (state) => {
-
   const uuid = userModelState.getAdUUID(state) || 'uninitialized'
   const version = app.getVersion()
-  const platform =  { darwin: 'mac', win32: os.arch() === 'x32' ? 'winia32' : 'winx64' }[os.platform()] || 'linux'
+  const platform = { darwin: 'mac', win32: os.arch() === 'x32' ? 'winia32' : 'winx64' }[os.platform()] || 'linux'
   const reportId = uuidv4()
-  const reportStamp = new Date().toISOString()
 
   const payload = {
     'browserId': uuid,
@@ -59,7 +57,7 @@ const generateAdReportingEvent = (state, eventType, action) => {
   // console.log("payload: ", payload)
   let map = {}
 
-  map.type  = eventType
+  map.type = eventType
   map.stamp = new Date().toISOString()
   map.place = userModelState.getAdPlace(state) || 'unspecified'
 
@@ -78,7 +76,7 @@ const generateAdReportingEvent = (state, eventType, action) => {
         map.tabUrl = tabValue.get('url')
         map.tabClassification = lastSingleClassification
 
-console.log("map: ", map)
+        console.log('map: ', map)
         break
       }
     case 'blur':
@@ -94,9 +92,9 @@ console.log("map: ", map)
     case 'settings':
       {
         let config = {}
-        config.operatingMode = getSetting(settings.ADS_OPERATING_MODE, state.settings) ? 'B':'A'
-        config.adsPerHour    = getSetting(settings.ADS_PER_HOUR, state.settings)
-        config.adsPerDay     = getSetting(settings.ADS_PER_DAY, state.settings)
+        config.operatingMode = getSetting(settings.ADS_OPERATING_MODE, state.settings) ? 'B' : 'A'
+        config.adsPerHour = getSetting(settings.ADS_PER_HOUR, state.settings)
+        config.adsPerDay = getSetting(settings.ADS_PER_DAY, state.settings)
 
         map.settings = config
         break
@@ -105,7 +103,7 @@ console.log("map: ", map)
     case 'restart':
     default:
       {
-        break 
+        break
       }
   }
 
@@ -114,7 +112,7 @@ console.log("map: ", map)
   // let q = userModelState.getReportingEventQueue(state)
   // console.log("q: ", q)
   // state = userModelState.flushReportingEventQueue(state)
- 
+
   return state
 }
 
@@ -244,7 +242,7 @@ const goAheadAndShowTheAd = (windowId, notificationTitle, notificationText, noti
 const classifyPage = (state, action, windowId) => {
   // console.log('data in', action)// run NB on the code
 
-console.log('classify')
+  console.log('classify')
 
   let headers = action.getIn(['scrapedData', 'headers'])
   let body = action.getIn(['scrapedData', 'body'])
@@ -323,10 +321,20 @@ const basicCheckReadyAdServe = (state, windowId) => {
   const scores = um.deriveCategoryScores(history)
   const indexOfMax = um.vectorIndexOfMax(scores)
   const category = catNames[indexOfMax]
-  const winnerOverTime = category && category.split('-')[0]
+  if (!category) {
+    appActions.onUserModelLog('No category at offset indexOfMax', {indexOfMax})
+    return state
+  }
 
-  // when catalog catches up, use category instead
-  const result = bundle['categories'][winnerOverTime]
+// given 'sports-rugby-rugby world cup': try that, then 'sports-rugby', then 'sports'
+  const hierarchy = category.split('-')
+  let winnerOverTime, result
+  for (let level in hierarchy) {
+    winnerOverTime = hierarchy.slice(0, hierarchy.length - level).join('-')
+    console.log('trying ' + winnerOverTime)
+    result = bundle['categories'][winnerOverTime]
+    if (result) break
+  }
   if (!result) {
     appActions.onUserModelLog('No ads for category', {category})
     return state

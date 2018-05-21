@@ -389,7 +389,7 @@ const userModelState = {
   flushReportingEventQueue: (state) => {
     return setReportingEventQueue(state, [])
   },
-  
+
   getReportingEventQueue: getReportingEventQueue,
 
   setReportingEventQueue: setReportingEventQueue
