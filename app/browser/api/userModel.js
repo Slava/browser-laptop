@@ -39,6 +39,7 @@ const getCoreEventPayload = (state) => {
   const version = app.getVersion()
   const platform = { darwin: 'mac', win32: os.arch() === 'x32' ? 'winia32' : 'winx64' }[os.platform()] || 'linux'
   const reportId = uuidv4()
+  const reportStamp = new Date().toISOString()
 
   const payload = {
     'browserId': uuid,
@@ -59,7 +60,6 @@ const generateAdReportingEvent = (state, eventType, action) => {
 
   map.type = eventType
   map.stamp = new Date().toISOString()
-  map.place = userModelState.getAdPlace(state) || 'unspecified'
 
   // additional event data
   switch (eventType) {
@@ -71,10 +71,16 @@ const generateAdReportingEvent = (state, eventType, action) => {
     case 'load':
       {
         const tabValue = action.get('tabValue')
-        map.tabId = tabValue.get('tabId')
-        map.tabType = 'general'
-        map.tabUrl = tabValue.get('url')
-        map.tabClassification = lastSingleClassification
+        const tabUrl = tabValue.get('url')
+
+        if (!tabUrl.startsWith('http://')) {
+          return state
+        }
+
+        map.tabId = String(tabValue.get('tabId'))
+        map.tabType = 'click'
+        map.tabUrl = tabUrl
+        map.tabClassification = lastSingleClassification || []
 
         console.log('map: ', map)
         break
@@ -103,6 +109,7 @@ const generateAdReportingEvent = (state, eventType, action) => {
     case 'restart':
     default:
       {
+        map.place = userModelState.getAdPlace(state) || 'unspecified'
         break
       }
   }
