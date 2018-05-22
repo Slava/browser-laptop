@@ -329,7 +329,6 @@ const basicCheckReadyAdServe = (state, windowId) => {
   let winnerOverTime, result
   for (let level in hierarchy) {
     winnerOverTime = hierarchy.slice(0, hierarchy.length - level).join('-')
-    console.log('trying ' + winnerOverTime)
     result = bundle['categories'][winnerOverTime]
     if (result) break
   }
@@ -341,7 +340,7 @@ const basicCheckReadyAdServe = (state, windowId) => {
   const arbitraryKey = randomKey(result)
   const payload = result[arbitraryKey]
   if (!payload) {
-    appActions.onUserModelLog('No ad at offset for category', {category, arbitraryKey})
+    appActions.onUserModelLog('No ad at offset for winnerOverTime', {category, winnerOverTime, arbitraryKey})
     return state
   }
 
@@ -350,12 +349,12 @@ const basicCheckReadyAdServe = (state, windowId) => {
   const advertiser = payload['advertiser']
   if (!notificationText || !notificationUrl || !advertiser) {
     appActions.onUserModelLog('Incomplete ad information',
-                              {category, arbitraryKey, notificationUrl, notificationText, advertiser})
+                              {category, winnerOverTime, arbitraryKey, notificationUrl, notificationText, advertiser})
     return state
   }
 
   goAheadAndShowTheAd(windowId, advertiser, notificationText, notificationUrl)
-  appActions.onUserModelLog('Ad shown', {category, arbitraryKey, notificationUrl, notificationText, winnerOverTime, advertiser})
+  appActions.onUserModelLog('Ad shown', {category, winnerOverTime, arbitraryKey, notificationUrl, notificationText, advertiser})
   state = userModelState.appendAdShownToAdHistory(state)
 
   return state
