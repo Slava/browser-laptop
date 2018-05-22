@@ -91,7 +91,7 @@ const appendToRingBufferUnderKey = (state, key, item, maxRows) => {
 }
 
 const getReportingEventQueue = (state) => {
-  return state.getIn(['userModel', 'reportingEventQueue']) || []
+  return state.getIn(['userModel', 'reportingEventQueue']) || Immutable.List()
 }
 
 const setReportingEventQueue = (state, queue) => {
@@ -381,6 +381,11 @@ const userModelState = {
   appendToReportingEventQueue: (state, evt) => {
     const wrappedEvent = Immutable.Map(evt)
     let q = getReportingEventQueue(state)
+
+    if (!Immutable.List.isList(q)) {
+      q = Immutable.List()
+    }
+
     q = q.push(wrappedEvent)
     state = setReportingEventQueue(state, q)
     return state

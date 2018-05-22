@@ -45,7 +45,7 @@ const getCoreEventPayload = (state) => {
     'braveVersion': version,
     'platform': platform,
     'reportId': reportId,
-    'reportStamp': new Date().toISOString(),
+    'reportStamp': reportStamp,
     'events': []
   }
 
@@ -241,8 +241,6 @@ const goAheadAndShowTheAd = (windowId, notificationTitle, notificationText, noti
 
 const classifyPage = (state, action, windowId) => {
   // console.log('data in', action)// run NB on the code
-
-  console.log('classify')
 
   let headers = action.getIn(['scrapedData', 'headers'])
   let body = action.getIn(['scrapedData', 'body'])
@@ -458,6 +456,7 @@ const getMethods = () => {
     retrieveSSID,
     confirmAdUUIDIfAdEnabled,
     generateAdReportingEvent,
+    getCoreEventPayload,
     lastSingleClassification
   }
 
