@@ -73,7 +73,7 @@ const generateAdReportingEvent = (state, eventType, action) => {
         const tabValue = action.get('tabValue')
         const tabUrl = tabValue.get('url')
 
-        if (!tabUrl.startsWith('http://')) {
+        if (!tabUrl.startsWith('http://') && !tabUrl.startsWith('https://')) {
           return state
         }
 
