@@ -136,7 +136,6 @@ const userModelState = {
 
     const respectsHourLimit = historyRespectsRollingTimeConstraint(history, hourWindow, hourAllowed)
     const respectsDayLimit = historyRespectsRollingTimeConstraint(history, dayWindow, dayAllowed)
-
     if (!respectsHourLimit || !respectsDayLimit) {
       return false
     }

@@ -164,7 +164,7 @@ const userModelReducer = (state, action, immutableAction) => {
         switch (action.get('key')) {
           case settings.ADS_ENABLED:
             {
-              let adEnabled = action.get('value')
+              const adEnabled = action.get('value')
 
               // this reports `value` true if enabled and false if disabled
               state = userModel.initialize(state, adEnabled)
@@ -192,7 +192,12 @@ const userModelReducer = (state, action, immutableAction) => {
       }
     case appConstants.APP_ON_USERMODEL_LOG:
       {
-        demoApi.appendValue(action.get('eventName'), action.get('data'))
+        const eventName = action.get('eventName')
+        const data = action.get('data')
+        demoApi.appendValue(eventName, data)
+
+        state = userModel.generateAdReportingEvent(state, 'notify', action)
+
         break
       }
     case appConstants.APP_NETWORK_CONNECTED:

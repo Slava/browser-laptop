@@ -63,9 +63,43 @@ const generateAdReportingEvent = (state, eventType, action) => {
 
   // additional event data
   switch (eventType) {
-    case 'notify': // TODO
+    case 'notify':
       {
-        // the event generating portion needs to go in the trigger and in the callback from the notification
+        const eventName = action.get('eventName')
+        const data = action.get('data')
+
+        switch (eventName) {
+          case notificationTypes.AD_SHOWN:
+            {
+              const classification = data.get('hierarchy')
+              map.notificationType = 'generated'
+              map.notificationClassification = classification
+              map.notificationCatalog = 'unspecified-catalog'
+              break
+            }
+          case notificationTypes.NOTIFICATION_RESULT:
+            {
+              const result = data.get('result')
+              const translate = { 'clicked': 'clicked', 'closed': 'dismissed', 'ignored': 'timeout' }
+              map.notificationType = translate[result]
+              break
+            }
+          case notificationTypes.NOTIFICATION_CLICK:
+          case notificationTypes.NOTIFICATION_TIMEOUT:
+            {
+              // handling these in the other event, currently. 2018.05.23
+              return state
+            }
+          default:
+            {
+              // not an event we want to process
+              return state
+            }
+        }
+
+        // must follow the switch statement, so we return from bogus events we don't want to capture, which won't have this
+        map.notificationId = data.uuid
+
         break
       }
     case 'load':
@@ -82,7 +116,6 @@ const generateAdReportingEvent = (state, eventType, action) => {
         map.tabUrl = tabUrl
         map.tabClassification = lastSingleClassification || []
 
-        console.log('map: ', map)
         break
       }
     case 'blur':
@@ -227,7 +260,7 @@ function randomKey (dictionary) {
   return keys[keys.length * Math.random() << 0]
 }
 
-const goAheadAndShowTheAd = (windowId, notificationTitle, notificationText, notificationUrl) => {
+const goAheadAndShowTheAd = (windowId, notificationTitle, notificationText, notificationUrl, uuid) => {
   appActions.nativeNotificationCreate(
     windowId,
     {
@@ -237,6 +270,7 @@ const goAheadAndShowTheAd = (windowId, notificationTitle, notificationText, noti
       sound: true,
       timeout: 60,
       wait: true,
+      uuid: uuid,
       data: {
         windowId,
         notificationUrl,
@@ -360,8 +394,10 @@ const basicCheckReadyAdServe = (state, windowId) => {
     return state
   }
 
-  goAheadAndShowTheAd(windowId, advertiser, notificationText, notificationUrl)
-  appActions.onUserModelLog('Ad shown', {category, winnerOverTime, arbitraryKey, notificationUrl, notificationText, advertiser})
+  const uuid = generateAdUUIDString()
+
+  goAheadAndShowTheAd(windowId, advertiser, notificationText, notificationUrl, uuid)
+  appActions.onUserModelLog(notificationTypes.AD_SHOWN, {category, winnerOverTime, arbitraryKey, notificationUrl, notificationText, advertiser, uuid, hierarchy})
   state = userModelState.appendAdShownToAdHistory(state)
 
   return state
