@@ -98,7 +98,7 @@ const generateAdReportingEvent = (state, eventType, action) => {
         }
 
         // must follow the switch statement, so we return from bogus events we don't want to capture, which won't have this
-        map.notificationId = data.uuid
+        map.notificationId = data.get('uuid')
 
         break
       }
