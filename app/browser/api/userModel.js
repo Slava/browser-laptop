@@ -24,6 +24,7 @@ const notificationTypes = require('../../common/constants/notificationTypes')
 
 // Utils
 const urlUtil = require('../../../js/lib/urlutil')
+const urlParse = require('../../common/urlParse')
 const ledgerUtil = require('../../common/lib/ledgerUtil')
 
 let foregroundP
@@ -75,6 +76,7 @@ const generateAdReportingEvent = (state, eventType, action) => {
               map.notificationType = 'generated'
               map.notificationClassification = classification
               map.notificationCatalog = 'unspecified-catalog'
+              map.notificationUrl = data.get('notificationUrl')
               break
             }
           case notificationTypes.NOTIFICATION_RESULT:
@@ -113,19 +115,33 @@ const generateAdReportingEvent = (state, eventType, action) => {
 
         map.tabId = String(tabValue.get('tabId'))
         map.tabType = 'click'
+
+        const searchState = userModelState.getSearchState(state)
+
+        if (searchState) {
+          map.tabType = 'search'
+        }
+
         map.tabUrl = tabUrl
-        map.tabClassification = lastSingleClassification || []
+
+        let classification = lastSingleClassification || []
+
+        if (!Array.isArray(classification)) {
+          classification = classification.toArray()
+        }
+
+        map.tabClassification = classification
 
         break
       }
     case 'blur':
       {
-        map.tabId = action.get('tabValue').get('tabId')
+        map.tabId = String(action.get('tabValue').get('tabId'))
         break
       }
     case 'focus':
       {
-        map.tabId = action.get('tabId')
+        map.tabId = String(action.get('tabId'))
         break
       }
     case 'settings':
@@ -228,12 +244,17 @@ const testShoppingData = (state, url) => {
 }
 
 const testSearchState = (state, url) => {
-  const hostname = urlUtil.getHostname(url)
+  // const hostname = urlUtil.getHostname(url)
+  const bundle = urlParse(url)
+  const google = 'www.google.com'
+
+  const hostname = bundle.hostname
+
   const lastSearchState = userModelState.getSearchState(state)
-  if (hostname === 'google.com') {
+  if (hostname === google) {
     const score = 1.0  // eventually this will be more sophisticated than if(), but google is always a search destination
     state = userModelState.flagSearchState(state, url, score)
-  } else if (hostname !== 'google.com' && lastSearchState) {
+  } else if (hostname !== google && lastSearchState) {
     state = userModelState.unFlagSearchState(state, url)
   }
   return state
